@@ -1,0 +1,598 @@
+=========================================================================
+ EasyHTML :: A package that provides an easy access to elements
+ of HTML and XHTML documents through the Document Object Model.
+=========================================================================
+
+Homepage: http://easyhtml.sourceforge.net/
+
+Author: Taras Gaidukov
+
+================================
+ Installation Instructions:
+================================
+
+Dependencies:
+
+    Python 3.4+
+
+Build and install by running:
+
+    $ python setup.py build
+    $ sudo python setup.py install
+
+============
+ Overview:
+============
+
+The package contains a module easyhtml.parser that provides a class
+easyhtml.parser.DOMParser (a subclass of html.parser.HTMLParser).
+This class has a method get_dom() that returns a DOM of parsed document
+which is an instance of easyhtml.dom.HTMLDocument class:
+
+from easyhtml import parser
+
+dom_parser = parser.DOMParser()
+dom_parser.feed('<html>'
+                '   <body>'
+                '       <h1 class='title'>Hello world!</h1>'
+                '       <div id="content">'
+                '           <p>First paragraph</p>'
+                '           <p>Second paragraph</p>'
+                '           <p>Third paragraph</p>'
+                '       </div>'
+                '   </body>'
+                '</html>')
+document = dom_parser.get_dom()
+
+The HTMLDocument class provides an API for access to all elements, their
+attributes and contents. Elements of DOM are instances of one of following
+classes:
+
+HTMLDocument        - a whole document
+HTMLTag             - a tag elements
+TextNode            - a text elements including HTML entities
+HTMLComment         - a comments in HTML code
+DoctypeDeclaration  - a doctype declaration of the document
+
+Each HTML element provides two variants of its view: raw HTML code and its
+"clear" text representation (as in web-browsers). A raw HTML code implemented
+as raw_html property of the element:
+
+document.raw_html # returns an HTML code of the document
+
+And a text representation is just a str version of the element:
+
+str(document) # returns a text representation of the document
+
+Text representations of comments and a doctype declaration are empty since
+these elements should be invisible on the page.
+
+To access nested elements inside other ones, there are following methods:
+
+get_tags_by_name(name)  - returns all tags with specified name
+get_children(query)     - returns all tags that match a query*
+get_element_by_id(id)   - returns a tag with specified id
+
+* query is a string that consists of conditions separated with semicolons.
+A condition is pair of an attribute name and its value written through the
+equality sign: "attr1=value1; attr2=value2".
+
+First two methods return an instance of easyhtml.dom.HTMLCollection class that
+contains found tags. An HTMLCollection object could be empty if there are no
+tags that satisfy the conditions. The get_element_by_id() method returns a tag
+with specified id since it's assumed that the id is unique and there is only
+one tag with such id. If the tag is not found, None is returned.
+
+Also, the method get_tags_by_name() is implemented as the magic method 
+__getattr__ that allows to get elements by their name just as an attribute:
+document.div is eqivalent to document.get_tags_by_name('div')
+
+The HTMLCollection class is a list-based collection that contains DOM elements
+or other HTMLCollection objects. Like a list the collection provides an access
+to its elements by their indices using get_element() method and it could be
+iterated in the for-loop:
+
+collection.get_element(0) # returns the first element of the collection
+                          # or None if it does not exist
+for element in collection:
+    # do something with each element
+
+Also, the method get_element() is implemented as the magic method __getitem__
+that provides a simplier syntax through the use of the square brackets
+operator, so collection[0] is equivalent to collection.get_element(0)
+
+Methods of the HTMLCollection class are similar to those of HTMLTag and
+HTMLDocument:
+
+get_tags_by_name(name)  - returns all tags with specified name
+get_children(query)     - returns all tags that match a query
+get_element_by_id(id)   - returns a tag with specified id
+
+IMPORTANT: Since the HTMLCollection is not an element of the DOM and does not
+keep the hierarchy of contained elements, each element in the collection is
+considered as an independent search result. And when a new search is called,
+the result would be a new HTMLCollection that contains separate collections
+for each element of the source HTMLCommection object. For instance, say the
+document contains following code:
+
+    <div id="div1">
+        <p id="p1"></p>
+    </div>
+    <div id="div2">
+        <p id="p2"></p>
+        <p id="p3"></p>
+    </div>
+
+then a call document.get_tags_by_name('div') returns a collection with two
+tags:
+
+Collection {
+    <div id="div1">
+    <div id="div2">
+}
+
+Then call collection.get_tags_by_name('p') returns a collection that contains
+two collections with <p> tags in each one.
+
+Collection {
+    Collection {
+        <p id="p1">
+    }
+    Collection {
+        <p id="p2">
+        <p id="p3">
+    }
+}
+
+Such behavior is similar to that the use of the collection in the for-loop and
+making new search requests to each element separately:
+
+collection = document.get_tags_by_name('div')
+for element in collection:
+    sub_collection = element.get_tags_by_name('p')
+    # do something with found tags
+
+The same result would be if you call a new search request to the collection
+directly and use the result in the for-loop:
+
+collection = document.get_tags_by_name('div')
+collection = collection.get_tags_by_name('p')
+for sub_collection in collection:
+    # do something with found tags
+
+Or even shorter:
+
+for sub_collection in document.div.p:
+    # do something with found tags
+
+Please note that the get_element_by_id() method returns a single tag as well
+as HTMLTag and HTMLDocument objects do, since it's assumed that the id is
+unique and there is only one tag with such id in the document even if the
+hierarhy of its elements has been destroyed.
+
+In addition the HTMLCollection class provides a method that helps to refine 
+the request:
+
+filter_tags_by_attrs(query) - filters found elements by specified query
+
+Also this method is implemented as the magic method __call__, so it's possible
+to filter tags using simplier syntax with brackets:
+
+document.div(class=someclass) # returns a collection of div elements with
+                              # the class "someclass"
+
+Note that the filter_tags_by_attrs() method does not create a new level of
+nested collections.
+
+===========================
+ Package API reference:
+===========================
+
+class easyhtml.parser.DOMParser()
+
+    Creates a parser instance. The DOMParser is a subclass of
+    html.parser.HTMLParser class. For more details about HTMLParser usage see
+    the official documentation of HTMLParser at Python's website.
+
+DOMParser Methods:
+
+DOMParser.get_dom()
+
+    Returns an instance of HTMLDocument that is the root object of the
+    Document Object Model.
+
+
+class easyhtml.dom.DoctypeDeclaration(decl)
+
+    A doctype declaration of the document. Used as an attribute of
+    easyhtml.dom.HTMLDocument objects. Is not visible in the str version of
+    the document, but it's present in the HTML code.
+
+    :decl: the text of the declaration, type str
+
+DoctypeDeclaration Methods:
+
+DoctypeDeclaration.raw_html
+
+    A property that returns a raw HTML code of the declaration. It consists of
+    the text passed into constructor between <! and > symbols. For instance,
+    <!DOCTYPE html>
+
+DoctypeDeclaration.__str__()
+
+    Returns a str version of the declaration. It's implicitly called in the
+    str context. Always returns an empty string since the doctype declaration
+    is invisible on the page.
+
+
+class easyhtml.dom.HTMLComment(text)
+
+    A comment in the HTML code. It's not visible in the str version of the
+    document, but it's present in the HTML code.
+
+    :text: a text of the comment, type str
+
+HTMLComment Methods:
+
+HTMLComment.raw_html
+
+    A property that returns a raw HTML code of the comment. It consists of the
+    text passed into constructor between <!-- and --> symbols. For instance,
+    <!-- Here is a comment -->
+
+HTMLComment.__str__()
+
+    Returns a str version of the comment. It's implicitly called in the str
+    context. Always returns an empty string since comments are invisible on
+    the page.
+
+
+class easyhtml.dom.TextNode()
+
+    A text data element in the document. It's a container for any visible
+    text data on the page. Could contain PlainText, NamedEntity and
+    NumEntity objects.
+
+TextNode Methods:
+
+TextNode.raw_html
+
+    A property that returns a raw HTML code of all contained objects.
+
+TextNode.__str__()
+
+    Returns a str version of the text data. It's implicitly called in the str
+    context. Includes corresponding characters instead of contained HTML
+    entities.
+
+TextNode.append(element)
+
+    Adds an element to the end of the list.
+
+    :element: an element to append, type easyhtml.dom.HTMLText (a superclass
+              of PlainText, NamedEntity and NumEntity classes.
+
+
+class easyhtml.dom.PlainText(text)
+
+    A plain text on the page (without HTML entities). It's used inside of the
+    TextNode element only.
+
+    :text: a text of the element, type str
+
+PlainText Methods:
+
+PlainText.raw_html
+
+    A property that returns all characters of the text as it is in the HTML
+    document.
+
+PlainText.__str__()
+
+    Returns a str version of the text. It's implicitly called in the str
+    context. Replaces sequences of white space characters with single spaces.
+
+
+class easyhtml.dom.NamedEntity(name)
+
+    A named HTML entity. It's used inside of the TextNode element only. If the
+    entity with specified name does not exist, the KeyError would be rised.
+
+    :name: a name of the entity, type str
+
+NamedEntity Methods:
+
+NamedEntity.raw_html
+
+    A property that returns an HTML code of the entity. It consists of the
+    name passed into constructor between & and ; symbols.
+
+NamedEntity.__str__()
+
+    Returns a str version of the entity. It's implicitly called in the str
+    context. For instance, it returns the "<" character for the entity with
+    the code &lt;
+
+
+class easyhtml.dom.NumEntity(num)
+
+    A numeric HTML entity specified by decimal or hexadecimal code. It's used
+    inside of the TextNode element only. If the entity with specified numeric
+    code does not exist, the KeyError would be rised.
+
+    :num: a numeric code of the entity, type str
+
+NamedEntity Methods:
+
+NamedEntity.raw_html
+
+    A property that returns an HTML code of the entity. It consists of the
+    name passed into constructor between &# and ; symbols.
+
+NamedEntity.__str__()
+
+    Returns a str version of the entity. It's implicitly called in the str
+    context. For instance, it returns the "<" character for the entity with
+    the code &#60; or &#x3c;
+
+
+class HTMLTag(name, attrs)
+
+    An HTML tag. Could be single such as <br> or complex such as <p>...</p>.
+    Complex tags could contain other elements (TextNode, HTMLComment or
+    HTMLTag).
+
+    :name: a name of the tag, type str
+    :attrs: a list of tuples with attributes of the tag,
+            format [(attr1, value1), (attr2: value2)]
+
+HTMLTag Methods:
+
+HTMLTag.single
+
+    Aproperty that indicates whether the tag is single, i.e. does not require
+    an endtag. The result depends on the name of the tag: there is a list of
+    the single tags and if the name matches any item from the list, the tag is
+    considered as single.
+
+HTMLTag.raw_html
+
+    A property that returns an HTML code of the tag. It consists of the
+    start tag, inner HTML code and the end tag.
+
+HTMLTag.__str__()
+
+    Returns a str version of the tag. It's implicitly called in the str
+    context. It consists of the str versions of all contained elements.
+    For instance, it returns "Hello, world!" for the tag
+    <p>Hello, world!</p>
+
+HTMLTag.start_tag
+
+    A property that returns an HTML code of the start tag. It consists of the
+    name and attributes of the tag in the angle brackets:
+    <name attr1="value1" attr2="value2">
+
+HTMLTag.end_tag
+
+    A property that returns an HTML code the end tag. It consists of the name
+    with the slash on the front in the angle brackets: </name>
+
+HTMLTag.inner_html
+
+    A property that returns HTML codes of all contained elements.
+
+HTMLTag.get_attributes()
+
+    Returns a dictionary of attributes.
+
+HTMLTag.get_attr(name):
+
+    Returns a value of the attribute with specified name of None if such
+    attribute does not exist.
+
+    :name: a name of the attribute, type str
+
+HTMLTag.check_attr(name, value)
+
+    Returns True if the value of the attribute with specified name matches
+    the specified value. Otherwise returns False.
+
+    Note that the "class" attribute in the HTML could be defined as a list of
+    several CSS classes separated by the white space characters. The method
+    returns True if specified value of the "class" attribute matches one of
+    those classes in theHTML. For instance, if the tag is defined as
+    <div class="foo bar">, then check_attr("class", "foo") returns True and
+    check_attr("class", "bar") returns True as well.
+
+    :name: a name of the attribute, tupe str
+    :value: a value of the atribute, type str
+
+HTMLTag.check_attrs(query)
+
+    Returns True if all attributes of the tag and its values match specified
+    query. Otherwise returns False. The query is a string of pairs attr=value
+    separated by semicolons and any number of spaces. For instance, 
+    "attr1=value1; attr2=value2"
+
+    :query: a query string, type str
+
+HTMLTag.append(element)
+
+    Adds an element to the end of the list.
+
+    :element: an element to append, allowed types:
+              easyhtml.dom.HTMLTextNode
+              easyhtml.dom.HTMLTag
+              easyhtml.dom.HTMLComment
+
+HTMLTags.tags
+
+    A property that returns a generator object that generates all contained
+    tags of the tag. 
+
+HTMLTag.get_all_tags()
+
+    Returns a generator object that generates all contained tags of the tag
+    including all their nested tags recursively.
+
+HTMLTag.get_tags_by_name(name)
+
+    Returns an easyhtml.dom.HTMLCollection object contains tags with specified
+    name including nested tags. The same functionality is provided by getting
+    the tag's name as an attribute: tag.get_tags_by_name("name") = tag.name
+
+    :name: a name of search tags, type str
+
+HTMLTag.get_children(query)
+
+    Returns an easyhtml.dom.HTMLCollection object that contains tags with
+    specified in the query attributes. The query is a string of pairs
+    attr=value separated by semicolons and any number of spaces. For instance,
+    "attr1=value1; attr2=value2"
+
+    :query: a query string, type str
+
+HTMLTag.get_element_by_id(e_id)
+
+    Returns a tag with specified id. If such tag does not exist returns None.
+
+    :e_id: an ID of the tag, type str
+
+HTMLTag.filter_tags_by_attrs(query)
+
+    Returns the tag itself if it matches the query, otherwise returns None.
+    The query is a string of pairs attr=value separated by semicolons and any
+    number of spaces. For instance, "attr1=value1; attr2=value2"
+
+    :query: a query string, type str
+
+
+class easyhtml.dom.HTMLDocument()
+
+    A root document object. Contains all HTML elements and provides an API to
+    access them.
+
+HTMLDocument Methods:
+
+HTMLDocument.raw_html
+
+    A property that returns an HTML code of the document.
+
+HTMLDocument.__str__()
+
+    Returns a str version of the document. It's implicitly called in the str
+    context. It consists of the str versions of all contained elements.
+
+HTMLDocument.doctype
+
+    A property that contains the DoctypeDeclaration object of the document.
+    The property allows to write a new doctype to it.
+
+HTMLDocument.inner_html
+
+    A property that returns HTML codes of all contained elements.
+
+HTMLDocument.append(element)
+
+    Adds an element to the end of the list.
+
+    :element: an element to append, allowed types:
+              easyhtml.dom.HTMLTextNode
+              easyhtml.dom.HTMLTag
+              easyhtml.dom.HTMLComment
+
+HTMLDocument.tags
+
+    A property that returns a generator object that generates all contained
+    tags of the document. 
+
+HTMLDocument.get_all_tags()
+
+    Returns a generator object that generates all contained tags of the
+    document including all their nested tags recursively.
+
+HTMLDocument.get_tags_by_name(name)
+
+    Returns an easyhtml.dom.HTMLCollection object contains tags with specified
+    name including nested tags. The same functionality is provided by getting
+    the tag's name as an attribute: doc.get_tags_by_name("name") = doc.name
+
+    :name: a name of search tags, type str
+
+HTMLDocument.get_children(query)
+
+    Returns an easyhtml.dom.HTMLCollection object that contains tags with
+    specified in the query attributes. The query is a string of pairs
+    attr=value separated by semicolons and any number of spaces. For instance,
+    "attr1=value1; attr2=value2"
+
+    :query: a query string, type str
+
+HTMLDocument.get_element_by_id(e_id)
+
+    Returns a tag with specified id. If such tag does not exist returns None.
+
+    :e_id: an ID of the tag, type str
+
+
+class easyhtml.dom.HTMLCollection(items)
+
+    A result object returned by get_* methods. Collection is an object that
+    contains found tags or collections of tags.
+
+    :items: an iterable object contains a content of the collection
+
+    The collection object is iterable and provides the __getitem__ method to
+    access its items using [] operator. Also it provides the __len__ method
+    so len(collection) would return actual count of elements in the
+    collection.
+
+HTMLCollection Methods:
+
+HTMLCollection.get_element(index)
+
+    Returns an element with specified index. If such element does not exist
+    None would be returned. The same functionality is provided by [] operator.
+
+    :index: an index of the element, type int
+
+HTMLCollection.get_tags_by_name(name)
+
+    Returns an easyhtml.dom.HTMLCollection object contains collections with
+    the results of such search request to each contained element. The same
+    functionality is provided by getting the tag's name as an attribute:
+    collection.get_tags_by_name("name") = collection.name
+
+ :name: a name of search tags, type str
+
+HTMLCollection.get_children(query)
+
+    Returns an easyhtml.dom.HTMLCollection object that contains collections
+    with the results of such search request to each contained element. The
+    query is a string of pairs attr=value separated by semicolons and any
+    number of spaces. For instance, "attr1=value1; attr2=value2"
+
+    :query: a query string, type str
+
+HTMLCollection.filter_tags_by_attrs(query)
+
+    Filters contained tags or tags in contained collections leaving those
+    match specified query. If there is no such tags the collection would be
+    empty. The query is a string of pairs attr=value separated by semicolons
+    and any number of spaces. For instance, "attr1=value1; attr2=value2"
+
+    The same functionality is provided by the __call__ method, so 
+    collection.filter_tags_by_attrs("attr=value") = collection("attr=value")
+
+    Note that since the return value of search methods are the HTMLCollection
+    object, you could use just document.div("class=foo") instead of 
+    document.div.filter_tags_by_attrs("class=foo")
+
+    :query: a query string, type str
+
+HTMLCollection.get_element_by_id(e_id)
+
+    Returns a tag with specified id. If such tag does not exist returns None.
+
+    :e_id: an ID of the tag, type str
