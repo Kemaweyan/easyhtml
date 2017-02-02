@@ -9,6 +9,7 @@ __all__ = (
     'NumEntity', 'NamedEntity', 'HTMLComment',
 )
 
+
 class HTMLElement(metaclass=ABCMeta):
 
     # returns a raw HTML code of an element
@@ -56,7 +57,9 @@ class HTMLSimpleElement(HTMLElement):
 
 # a base class for all elemenets that
 # should be contained by TextNode objects
-class HTMLText(HTMLSimpleElement): pass
+class HTMLText(HTMLSimpleElement):
+    pass
+
 
 class PlainText(HTMLText):
 
@@ -210,8 +213,6 @@ class HTMLElementMixin(HTMLElement):
         return ''.join(map(lambda e: e.raw_html, self.elements))
 
 
-
-
 class HTMLContainer(metaclass=ABCMeta):
 
     """
@@ -222,7 +223,6 @@ class HTMLContainer(metaclass=ABCMeta):
     def __init__(self):
         # a list of contained elements
         self.elements = []
-
 
 
 class TextNode(HTMLElementMixin, HTMLContainer):
@@ -256,7 +256,6 @@ class TextNode(HTMLElementMixin, HTMLContainer):
 
         """
         self.elements.append(element)
-
 
 
 class TagContainer(HTMLContainer):
@@ -296,7 +295,6 @@ class TagContainer(HTMLContainer):
     def get_element_by_id(self, e_id): pass
 
 
-
 class ElementTagContainer(HTMLElementMixin, TagContainer):
 
     @property
@@ -326,7 +324,7 @@ class ElementTagContainer(HTMLElementMixin, TagContainer):
         Returns a generator that recursively yields all nested tags.
 
         """
-        tags = self.tags # tags of THIS object
+        tags = self.tags  # tags of THIS object
         # recursively add to the result all
         # children tags including their children
         for tag in self.tags:
@@ -412,8 +410,6 @@ class ElementTagContainer(HTMLElementMixin, TagContainer):
     def single(self): pass
 
 
-
-
 class HTMLDocument(ElementTagContainer):
 
     """
@@ -432,7 +428,7 @@ class HTMLDocument(ElementTagContainer):
         A property that indicates whether the tag is
         single, i.e. does not require an endtag.
 
-        Single tags such as <br>, <img>, <input> etc. 
+        Single tags such as <br>, <img>, <input> etc.
         could not contain other elements.
 
         An HTML document is pseudo-tag that could contain
@@ -470,14 +466,13 @@ class HTMLDocument(ElementTagContainer):
         self._doctype = decl
 
 
-
 class HTMLTag(ElementTagContainer):
 
     """
     An HTML tag object.
 
     """
-    # a list of single tags - 
+    # a list of single tags -
     # they do not require an endtag
     single_tags = (
         'area', 'base', 'basefont', 'bgsound', 'br', 'col',
@@ -588,7 +583,7 @@ class HTMLTag(ElementTagContainer):
 
         """
         Returns True if the tag has an attribute
-        with specified name and value. 
+        with specified name and value.
 
         """
         # get an attribute
@@ -646,7 +641,6 @@ class HTMLTag(ElementTagContainer):
         return None
 
 
-
 class HTMLCollection(TagContainer):
 
     """
@@ -692,7 +686,7 @@ class HTMLCollection(TagContainer):
             <p id="p3">
         }
     }
-    
+
     HTMLCollection objects are iterable.
 
     """
@@ -857,7 +851,8 @@ class HTMLCollection(TagContainer):
         # (None is returned by tags that do not match query)
         return HTMLCollection(filter(lambda t: t is not None,
                               self._map_elements(
-                              lambda e: e.filter_tags_by_attrs(query))))
+                                lambda e: e.filter_tags_by_attrs(query))
+                                ))
 
     def get_element_by_id(self, e_id):
 

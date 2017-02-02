@@ -71,8 +71,6 @@ class TagStack:
         return self.tags[0]
 
 
-
-
 class DOMParser(HTMLParser):
 
     """
@@ -171,7 +169,7 @@ class DOMParser(HTMLParser):
             element = dom.PlainText('&' + name + ';')
         # append result to current opened tag
         self.stack.current.append(element)
-        
+
     def handle_charref(self, num):
 
         """
@@ -189,7 +187,7 @@ class DOMParser(HTMLParser):
             element = dom.PlainText('&#' + num + ';')
         # append result to current opened tag
         self.stack.current.append(element)
-        
+
     def handle_comment(self, data):
 
         """
