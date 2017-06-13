@@ -3,12 +3,11 @@ from . import dom
 
 
 class TagStack:
-
     """
     A stack-baset object to store opened
     tags while reading a document.
-
     """
+
     def __init__(self):
         # a list of tags, used as a stack
         self.tags = []
@@ -26,11 +25,9 @@ class TagStack:
         self.current = tag
 
     def pop(self):
-
         """
         Extract a last opened tag from the stack
         and makes previous opened one current.
-
         """
         self.tags.pop()
         try:
@@ -39,20 +36,16 @@ class TagStack:
             self.current = None
 
     def clear(self):
-
         """
         Removes all tags from the stack.
-
         """
         self.tags.clear()
         self.current = None
 
     def __contains__(self, name):
-
         """
         Checks whether a tag with specified name
         is currently opened.
-
         """
         # skip the first element because
         # that is not a tag but HTMLDocument object
@@ -63,21 +56,18 @@ class TagStack:
 
     @property
     def root(self):
-
         """
         Returns a root (HTMLDocument) object.
-
         """
         return self.tags[0]
 
 
 class DOMParser(HTMLParser):
-
     """
     Parses HTML document and builds
     DOM structure.
-
     """
+
     def __init__(self):
         HTMLParser.__init__(self)
         # create a stack object
@@ -88,7 +78,6 @@ class DOMParser(HTMLParser):
         self.stack.push(root)
 
     def handle_starttag(self, name, attrs):
-
         """
         Processes a start tag such as
         <tag attr="value" ...>
@@ -97,7 +86,6 @@ class DOMParser(HTMLParser):
         :attrs: attributes of the tag, type a list of tuples
 
         [(attr1, value1), (attr2, value2)...]
-
         """
         # create a tag
         tag = dom.HTMLTag(name, attrs)
@@ -110,12 +98,10 @@ class DOMParser(HTMLParser):
         self.stack.push(tag)
 
     def handle_endtag(self, name):
-
         """
         Processes an end tag such as </tag>
 
         :name: a name of the tag, type str
-
         """
         # if an HTML document has a valid structure, the end tag is the same
         # with the last opened tag. But if document is invalid, there would be
@@ -137,12 +123,10 @@ class DOMParser(HTMLParser):
             self.stack.pop()
 
     def handle_data(self, data):
-
         """
         Process a plain text.
 
         :data: data of the text, type str
-
         """
         # ignore empty strings without printable characters
         if not data.strip(' \n\t\xA0'):
@@ -153,12 +137,10 @@ class DOMParser(HTMLParser):
         self.stack.current.append(element)
 
     def handle_entityref(self, name):
-
         """
         Process a named entity such as &name;
 
         :name: a name of the entity, type str
-
         """
         try:
             # create an entity by its name
@@ -171,12 +153,10 @@ class DOMParser(HTMLParser):
         self.stack.current.append(element)
 
     def handle_charref(self, num):
-
         """
         Process a numeric entity such as &name;
 
         :num: a numeric code of the character, type str
-
         """
         try:
             # create an entity by its code
@@ -189,12 +169,10 @@ class DOMParser(HTMLParser):
         self.stack.current.append(element)
 
     def handle_comment(self, data):
-
         """
         Process a comment such as <!-- comment -->
 
         :data: data of the comment, type str
-
         """
         # create a comment object
         element = dom.HTMLComment(data)
@@ -202,24 +180,20 @@ class DOMParser(HTMLParser):
         self.stack.current.append(element)
 
     def handle_decl(self, decl):
-
         """
         Processes a document declaration
         such as <!DOCTYPE ...>
 
         :decl: a string of declaration, type str
-
         """
         self.stack.root.doctype = dom.DoctypeDeclaration(decl)
 
     def get_dom(self):
-
         """
         Returns a DOM of the document or None if
         DOM does not exist.
 
         Prepare the parser for a new document.
-
         """
         try:
             # get a root elemtn - HTMLDocument object
