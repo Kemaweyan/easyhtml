@@ -419,7 +419,7 @@ class HTMLDocument(ElementTagContainer):
     """
     def __init__(self):
         ElementTagContainer.__init__(self)
-        self._doctype = ''
+        self._doctype = None
 
     @property
     def single(self):
