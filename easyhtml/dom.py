@@ -444,8 +444,12 @@ class HTMLDocument(ElementTagContainer):
         Returns a raw HTML code of an HTML document.
 
         """
-        # raw_html contains a doctype declaration and inner HTML
-        return self.doctype.raw_html + self.inner_html
+        # raw_html contains a doctype declaration if it exists
+        # and inner HTML
+        decl = ''
+        if self.doctype:
+            decl = self.doctype.raw_html
+        return decl + self.inner_html
 
     @property
     def doctype(self):
