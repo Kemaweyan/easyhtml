@@ -13,7 +13,7 @@ setup(
     author_email = "kemaweyan@gmail.com",
     keywords = "html dom parser",
     long_description = open('README').read(),
-    url = "http://easyhtml.sourceforge.net/",
+    url = "https://github.com/Kemaweyan/easyhtml",
     license = "GPLv3",
     packages=find_packages(exclude=["tests"]),
     test_suite='tests'
