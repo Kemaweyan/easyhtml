@@ -554,7 +554,6 @@ class HTMLTag(ElementTagContainer):
             #         content...
             #     </tag2>
             # </tag>
-            print(HTMLElementMixin.raw_html.fget(self))
             text += textwrap.indent(self.inner_html, ' '*4)
             # and an end tag
             text += self.end_tag
